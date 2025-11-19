@@ -1,154 +1,569 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Focus Dashboard</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=Inter:wght@300;400;500&display=swap" rel="stylesheet" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Focus — Pomodoro Dashboard</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+
   <style>
-    body {
-      margin: 0;
-      padding: 0;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
+    :root{
+      --glass: rgba(255,255,255,0.06);
+      --accent: rgba(255,255,255,0.9);
+      --muted: rgba(245,240,230,0.75);
+      --card-blur: 10px;
+      --radius: 18px;
+    }
+    html,body{
+      height:100%;
+      margin:0;
+      font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      color: var(--accent);
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      background:#111;
+    }
+
+    /* full wallpaper */
+    .bg {
+      position: fixed;
+      inset: 0;
       background-size: cover;
       background-position: center;
-      font-family: "Inter", sans-serif;
-      color: #f5f0e6;
-      backdrop-filter: blur(2px);
+      filter: saturate(1.05) contrast(1.03);
+      transition: transform .8s ease, filter .6s ease;
+      z-index: 0;
     }
 
-    .theme-buttons {
-      position: absolute;
-      top: 20px;
-      left: 20px;
+    /* overlay */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(6,6,8,0.25), rgba(6,6,8,0.55));
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .app {
+      position: relative;
+      z-index: 2;
+      min-height: 100vh;
       display: flex;
-      gap: 10px;
+      align-items: center;
+      justify-content: center;
+      padding: 48px 20px;
+      box-sizing: border-box;
     }
 
-    .theme-buttons button {
-      padding: 7px 14px;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-family: inherit;
+    .card {
+      width: min(920px, 96vw);
+      border-radius: 22px;
+      background: linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
+      box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+      backdrop-filter: blur(var(--card-blur));
+      padding: 28px;
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 20px;
+      align-items: center;
+    }
+
+    /* left area (timer + clock) */
+    .left {
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      padding: 20px;
+      text-align:center;
+      min-height:320px;
     }
 
     .clock {
-      font-size: 4rem;
-      margin-bottom: 20px;
-      font-family: "Playfair Display", serif;
+      font-size: 0.95rem;
+      color: var(--muted);
+      margin-bottom: 12px;
+      letter-spacing: 0.6px;
     }
 
-    .timer {
-      font-size: 2rem;
-      margin: 15px 0;
+    .timer-wrap{
+      position: relative;
+      width: 100%;
+      max-width:560px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      margin: 6px 0 14px;
     }
 
-    .controls button {
-      padding: 10px 20px;
-      margin: 5px;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 1rem;
-      font-family: inherit;
+    /* circular glass around timer */
+    .timer-circle {
+      width: min(420px, 85%);
+      aspect-ratio: 1/1;
+      border-radius: 999px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.03), 0 10px 30px rgba(0,0,0,0.5);
+      border: 1px solid rgba(255,255,255,0.04);
+      position: relative;
+      padding: 28px;
     }
 
-    .spotify {
-      margin-top: 25px;
+    .timer-display {
+      font-family: "Cormorant Garamond", serif;
+      font-weight: 700;
+      font-size: clamp(32px, 8vw, 96px);
+      line-height:1;
+      color: var(--accent);
+      text-shadow: 0 8px 30px rgba(0,0,0,0.6);
+    }
+
+    .controls {
+      display:flex;
+      gap:10px;
+      margin-top:14px;
+      flex-wrap:wrap;
+      justify-content:center;
+    }
+
+    .btn {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.06);
+      color: var(--accent);
+      padding: 10px 14px;
       border-radius: 12px;
-      overflow: hidden;
+      cursor:pointer;
+      font-weight:600;
+      transition: transform .12s ease, background .12s;
+      font-size: 0.95rem;
     }
+    .btn:active { transform: translateY(1px) scale(.997); }
+    .btn.ghost { background: transparent; border:1px solid rgba(255,255,255,0.04); color:var(--muted); }
+
+    .mode-buttons { display:flex; gap:8px; justify-content:center; margin-top:10px; }
+
+    .small {
+      font-size:0.88rem;
+      padding:6px 10px;
+      border-radius:10px;
+    }
+
+    /* right column (widgets) */
+    .right {
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+      padding:8px;
+    }
+
+    .card-section {
+      background: rgba(0,0,0,0.25);
+      padding: 12px;
+      border-radius: 14px;
+      border:1px solid rgba(255,255,255,0.03);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.5);
+    }
+    .card-section h4 {
+      margin:0 0 8px 0;
+      font-size:0.95rem;
+      color:var(--muted);
+    }
+    input[type="text"], input[type="url"] {
+      width:100%;
+      padding:10px;
+      border-radius:10px;
+      border: none;
+      outline:none;
+      font-family:inherit;
+      background: rgba(255,255,255,0.02);
+      color:var(--muted);
+      box-sizing:border-box;
+    }
+    label { font-size:0.85rem; color:var(--muted); display:block; margin-bottom:6px; }
+
+    .wallpapers { display:flex; gap:8px; flex-wrap:wrap; }
+    .wp-thumb {
+      width:64px; height:48px; border-radius:8px; overflow:hidden; cursor:pointer;
+      border:2px solid transparent; box-shadow: 0 6px 16px rgba(0,0,0,0.5);
+    }
+    .wp-thumb img { width:100%; height:100%; object-fit:cover; display:block; }
+
+    .footer-note { font-size:0.82rem; color:var(--muted); text-align:center; margin-top:8px; }
+
+    /* responsive */
+    @media (max-width:880px){
+      .card { grid-template-columns: 1fr; padding:18px; }
+      .right { order:2; }
+      .left { order:1; }
+    }
+
   </style>
 </head>
 <body>
-  <div class="theme-buttons">
-    <button onclick="setTheme('studyblr')">Studyblr</button>
-    <button onclick="setTheme('cottagecore')">Cottagecore</button>
-    <button onclick="setTheme('darkacademia')">Dark Academia</button>
-  </div>
+  <div id="bg" class="bg"></div>
+  <div class="overlay"></div>
 
-  <div class="clock" id="clock"></div>
+  <main class="app">
+    <section class="card" role="application" aria-label="Pomodoro Focus Dashboard">
+      <div class="left" id="left">
+        <div class="clock" id="clockLine" aria-live="polite">—</div>
 
-  <div class="timer" id="timer">25:00</div>
-  <div class="controls">
-    <button onclick="startTimer()">Start</button>
-    <button onclick="pauseTimer()">Pause</button>
-    <button onclick="resetTimer()">Reset</button>
-  </div>
+        <div class="timer-wrap">
+          <div class="timer-circle" aria-hidden="false">
+            <div class="timer-display" id="timerDisplay">25:00</div>
+          </div>
+        </div>
 
-  <div class="spotify">
-    <input id="spotifyInput" type="text" placeholder="Paste Spotify playlist link here" style="padding:10px; width:280px; border-radius:8px; border:none; margin-bottom:10px; font-family:inherit;">
-    <button onclick="updateSpotify()" style="padding:8px 16px; border:none; border-radius:8px; cursor:pointer; font-family:inherit;">Load Playlist</button>
-    <div id="spotifyEmbed" style="margin-top:15px;"></div>
-  </div>
+        <div class="controls" role="group" aria-label="Timer controls">
+          <button class="btn" id="startBtn">Start</button>
+          <button class="btn ghost" id="pauseBtn">Pause</button>
+          <button class="btn ghost" id="resetBtn">Reset</button>
+        </div>
+
+        <div class="mode-buttons" role="tablist" aria-label="Timer modes">
+          <button class="btn small" data-mode="focus">Focus</button>
+          <button class="btn small" data-mode="short">Short Break</button>
+          <button class="btn small" data-mode="long">Long Break</button>
+        </div>
+        <div class="footer-note">Choose durations on the right • Settings are saved</div>
+      </div>
+
+      <aside class="right" aria-label="Widgets">
+        <div class="card-section" id="durations">
+          <h4>Durations (minutes)</h4>
+          <label>Focus
+            <input type="number" id="focusMins" min="1" max="180" value="25">
+          </label>
+          <label>Short break
+            <input type="number" id="shortMins" min="1" max="60" value="5">
+          </label>
+          <label>Long break
+            <input type="number" id="longMins" min="1" max="60" value="15">
+          </label>
+        </div>
+
+        <div class="card-section" id="wallpapers">
+          <h4>Wallpaper</h4>
+          <div class="wallpapers" title="Choose wallpaper">
+            <div class="wp-thumb" data-src="https://images.unsplash.com/photo-1503264116251-35a269479413?auto=format&fit=crop&w=1200&q=80"><img alt="wp1" src="https://images.unsplash.com/photo-1503264116251-35a269479413?auto=format&fit=crop&w=400&q=60"></div>
+            <div class="wp-thumb" data-src="https://images.unsplash.com/photo-1502082553048-f009c37129b9?auto=format&fit=crop&w=1200&q=80"><img alt="wp2" src="https://images.unsplash.com/photo-1502082553048-f009c37129b9?auto=format&fit=crop&w=400&q=60"></div>
+            <div class="wp-thumb" data-src="https://images.unsplash.com/photo-1445820135713-2d1a6e8f2b0b?auto=format&fit=crop&w=1200&q=80"><img alt="wp3" src="https://images.unsplash.com/photo-1445820135713-2d1a6e8f2b0b?auto=format&fit=crop&w=400&q=60"></div>
+            <div class="wp-thumb" data-src="https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=1200&q=80"><img alt="wp4" src="https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=400&q=60"></div>
+          </div>
+          <label style="margin-top:10px">Or paste image URL
+            <input type="url" id="wpUrl" placeholder="https://...jpg">
+          </label>
+          <div style="display:flex; gap:8px; margin-top:8px;">
+            <button class="btn small" id="applyWp">Apply</button>
+            <button class="btn small ghost" id="clearWp">Reset</button>
+          </div>
+        </div>
+
+        <div class="card-section" id="spotify">
+          <h4>Spotify</h4>
+          <label>Paste a Spotify track or playlist link</label>
+          <input type="text" id="spotifyInput" placeholder="https://open.spotify.com/playlist/..." />
+          <div style="display:flex; gap:8px; margin-top:8px;">
+            <button class="btn small" id="loadSpotify">Load</button>
+            <button class="btn small ghost" id="clearSpotify">Clear</button>
+          </div>
+          <div id="spotifyEmbed" style="margin-top:10px;"></div>
+        </div>
+
+      </aside>
+    </section>
+  </main>
 
   <script>
-    function updateClock() {
+    /* ---------------------------
+       Helper & state
+    --------------------------- */
+    const bg = document.getElementById('bg');
+    const timerDisplay = document.getElementById('timerDisplay');
+    const clockLine = document.getElementById('clockLine');
+
+    const startBtn = document.getElementById('startBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const resetBtn = document.getElementById('resetBtn');
+
+    const modeButtons = document.querySelectorAll('[data-mode]');
+    const focusMinsInput = document.getElementById('focusMins');
+    const shortMinsInput = document.getElementById('shortMins');
+    const longMinsInput = document.getElementById('longMins');
+
+    const wpThumbs = document.querySelectorAll('.wp-thumb');
+    const wpUrl = document.getElementById('wpUrl');
+    const applyWp = document.getElementById('applyWp');
+    const clearWp = document.getElementById('clearWp');
+
+    const spotifyInput = document.getElementById('spotifyInput');
+    const loadSpotify = document.getElementById('loadSpotify');
+    const clearSpotify = document.getElementById('clearSpotify');
+    const spotifyEmbed = document.getElementById('spotifyEmbed');
+
+    let timerInterval = null;
+    let remaining = 25 * 60;
+    let currentMode = localStorage.getItem('pd_mode') || 'focus'; // focus | short | long
+    let running = false;
+
+    /* ---------------------------
+       Initialize / load saved
+    --------------------------- */
+    function loadSettings(){
+      // durations
+      const sFocus = localStorage.getItem('pd_focus') || '25';
+      const sShort = localStorage.getItem('pd_short') || '5';
+      const sLong = localStorage.getItem('pd_long') || '15';
+      focusMinsInput.value = sFocus;
+      shortMinsInput.value = sShort;
+      longMinsInput.value = sLong;
+
+      // wallpaper
+      const sWp = localStorage.getItem('pd_wp');
+      if (sWp) bg.style.backgroundImage = `url('${sWp}')`;
+      else bg.style.backgroundImage = "url('https://images.unsplash.com/photo-1503264116251-35a269479413?auto=format&fit=crop&w=1400&q=80')";
+
+      // spotify
+      const sSp = localStorage.getItem('pd_spotify');
+      if (sSp) spotifyInput.value = sSp, loadSpotifyEmbed(sSp);
+
+      // mode
+      applyMode(currentMode);
+      updateRemainingFromMode();
+      updateTimerDisplay();
+      updateModeButtonsUI();
+    }
+
+    function saveDurations(){
+      localStorage.setItem('pd_focus', focusMinsInput.value);
+      localStorage.setItem('pd_short', shortMinsInput.value);
+      localStorage.setItem('pd_long', longMinsInput.value);
+    }
+
+    /* ---------------------------
+       Clock (local time + tz)
+    --------------------------- */
+    function updateClock(){
       const now = new Date();
-      document.getElementById("clock").innerText = now.toLocaleTimeString();
+      // show time and timezone name
+      const timeStr = now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Local';
+      clockLine.textContent = `${timeStr} • ${tz}`;
     }
     setInterval(updateClock, 1000);
     updateClock();
 
-    let timerInterval;
-    let time = 1500;
-
-    function updateTimerDisplay() {
-      const minutes = Math.floor(time / 60);
-      const seconds = time % 60;
-      document.getElementById("timer").innerText = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    /* ---------------------------
+       Timer functions
+    --------------------------- */
+    function setRemainingFromMinutes(mins){
+      remaining = Math.max(1, Math.round(mins)) * 60;
     }
 
-    function startTimer() {
-      clearInterval(timerInterval);
-      timerInterval = setInterval(() => {
-        if (time > 0) {
-          time--;
-          updateTimerDisplay();
-        } else {
-          clearInterval(timerInterval);
-        }
-      }, 1000);
+    function updateRemainingFromMode(){
+      if (currentMode === 'focus') setRemainingFromMinutes(parseInt(focusMinsInput.value || 25));
+      else if (currentMode === 'short') setRemainingFromMinutes(parseInt(shortMinsInput.value || 5));
+      else setRemainingFromMinutes(parseInt(longMinsInput.value || 15));
     }
 
-    function pauseTimer() {
-      clearInterval(timerInterval);
+    function updateTimerDisplay(){
+      const m = Math.floor(remaining/60);
+      const s = remaining % 60;
+      timerDisplay.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
     }
 
-    function resetTimer() {
+    function applyMode(mode){
+      currentMode = mode;
+      localStorage.setItem('pd_mode', mode);
+      updateRemainingFromMode();
+      updateTimerDisplay();
+      updateModeButtonsUI();
+    }
+
+    function updateModeButtonsUI(){
+      modeButtons.forEach(b => {
+        b.classList.toggle('active', b.dataset.mode === currentMode);
+        b.style.opacity = b.dataset.mode === currentMode ? '1' : '0.75';
+      });
+    }
+
+    function tick(){
+      if (remaining > 0) {
+        remaining--;
+        updateTimerDisplay();
+      } else {
+        stopTimer();
+        // beep + visual flash
+        playBeep();
+        flashBg();
+      }
+    }
+
+    function startTimer(){
+      if (running) return;
+      running = true;
+      timerInterval = setInterval(tick, 1000);
+      startBtn.disabled = true;
+    }
+    function pauseTimer(){
+      running = false;
       clearInterval(timerInterval);
-      time = 1500;
+      timerInterval = null;
+      startBtn.disabled = false;
+    }
+    function stopTimer(){
+      pauseTimer();
+      // after finishing, automatically switch to break/focus per simple cycle:
+      if (currentMode === 'focus') applyMode('short');
+      else applyMode('focus');
+    }
+    function resetTimer(){
+      pauseTimer();
+      updateRemainingFromMode();
       updateTimerDisplay();
     }
 
-    function setTheme(theme) {
-      if (theme === "studyblr") {
-        document.body.style.backgroundImage = "url('https://i.imgur.com/1y8VZQk.jpg')";
-      } else if (theme === "cottagecore") {
-        document.body.style.backgroundImage = "url('https://i.imgur.com/BdUnyIF.png')";
-      } else if (theme === "darkacademia") {
-        document.body.style.backgroundImage = "url('https://i.imgur.com/9YVdFdz.jpg')";
-      }
-    }
-    function updateSpotify() {
-      const link = document.getElementById('spotifyInput').value;
-      const embed = document.getElementById('spotifyEmbed');
-      if (!link.includes('open.spotify.com')) {
-        embed.innerHTML = '<p style="color:white">Invalid Spotify link.</p>';
-        return;
-      }
-      const embedLink = link.replace('open.spotify.com/', 'open.spotify.com/embed/');
-      embed.innerHTML = `<iframe style="border-radius:12px" src="${embedLink}" width="300" height="380" frameborder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>`;
+    startBtn.addEventListener('click', startTimer);
+    pauseBtn.addEventListener('click', pauseTimer);
+    resetBtn.addEventListener('click', () => { resetTimer(); });
+
+    modeButtons.forEach(b => {
+      b.addEventListener('click', () => {
+        applyMode(b.dataset.mode);
+        resetTimer();
+      });
+    });
+
+    // save durations when changed
+    [focusMinsInput, shortMinsInput, longMinsInput].forEach(inp => {
+      inp.addEventListener('change', () => {
+        saveDurations();
+        updateRemainingFromMode();
+        updateTimerDisplay();
+      });
+    });
+
+    /* ---------------------------
+       Wallpaper controls
+    --------------------------- */
+    wpThumbs.forEach(t => {
+      t.addEventListener('click', () => {
+        const src = t.dataset.src;
+        applyWallpaper(src);
+      });
+    });
+
+    applyWp.addEventListener('click', () => {
+      const url = wpUrl.value.trim();
+      if (!url) return alert('Paste a valid image URL.');
+      applyWallpaper(url);
+    });
+
+    clearWp.addEventListener('click', () => {
+      localStorage.removeItem('pd_wp');
+      // set default
+      bg.style.backgroundImage = "url('https://images.unsplash.com/photo-1503264116251-35a269479413?auto=format&fit=crop&w=1400&q=80')";
+      wpUrl.value = '';
+    });
+
+    function applyWallpaper(url){
+      // basic validation
+      if (!url || !/^https?:\/\//.test(url)) return alert('Invalid image URL.');
+      bg.style.backgroundImage = `url('${url}')`;
+      localStorage.setItem('pd_wp', url);
     }
 
-</script>
+    /* ---------------------------
+       Spotify embed
+    --------------------------- */
+    function normalizeSpotifyEmbed(link){
+      if (!link) return null;
+      // accept both short and long links
+      try {
+        // user might paste spotify URI or https link
+        if (link.includes('open.spotify.com')) {
+          return link.replace('/track/','/embed/track/').replace('/playlist/','/embed/playlist/').replace('/album/','/embed/album/').split('?')[0];
+        } else if (link.startsWith('spotify:')) {
+          // spotify:playlist:xxxx -> construct embed
+          const parts = link.split(':');
+          if (parts.length >= 3) {
+            const type = parts[1], id = parts[2];
+            return `https://open.spotify.com/embed/${type}/${id}`;
+          }
+        }
+      } catch (e) {}
+      return null;
+    }
+
+    function loadSpotifyEmbed(link){
+      const embed = normalizeSpotifyEmbed(link);
+      if (!embed) { spotifyEmbed.innerHTML = '<div style="color:var(--muted)">Invalid Spotify link.</div>'; return; }
+      spotifyEmbed.innerHTML = `<iframe src="${embed}" width="100%" height="80" frameborder="0" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" style="border-radius:12px"></iframe>`;
+      localStorage.setItem('pd_spotify', link);
+    }
+
+    loadSpotify.addEventListener('click', () => {
+      const link = spotifyInput.value.trim();
+      loadSpotifyEmbed(link);
+    });
+    clearSpotify.addEventListener('click', () => {
+      spotifyInput.value = '';
+      spotifyEmbed.innerHTML = '';
+      localStorage.removeItem('pd_spotify');
+    });
+
+    /* ---------------------------
+       small UX: flash and beep
+    --------------------------- */
+    function flashBg(){
+      bg.style.transform = 'scale(1.02)';
+      bg.style.filter = 'brightness(1.08) saturate(1.08)';
+      setTimeout(()=> {
+        bg.style.transform = '';
+        bg.style.filter = '';
+      }, 650);
+    }
+
+    function playBeep() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.type = 'sine';
+        o.frequency.value = 880;
+        g.gain.value = 0.0001;
+        o.connect(g);
+        g.connect(ctx.destination);
+        // quick ramp to audible volume
+        g.gain.exponentialRampToValueAtTime(0.08, ctx.currentTime + 0.02);
+        o.start();
+        // ramp down
+        g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.5);
+        o.stop(ctx.currentTime + 0.55);
+      } catch(e){}
+    }
+
+    /* ---------------------------
+       Init
+    --------------------------- */
+    loadSettings();
+
+    // expose quick keyboard shortcuts
+    window.addEventListener('keydown', (e) => {
+      if (e.key === ' ' || e.code === 'Space') {
+        // space toggles start/pause
+        e.preventDefault();
+        if (running) pauseTimer(); else startTimer();
+      } else if (e.key.toLowerCase() === 'r') {
+        resetTimer();
+      }
+    });
+  </script>
 </body>
 </html>
-
